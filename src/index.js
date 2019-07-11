@@ -2,7 +2,7 @@ import express from "express";
 import { ApolloServer, gql } from "apollo-server-express";
 import redis from "ioredis";
 
-const client = new redis();
+const client = new redis(process.env.REDIS_URL);
 
 client.on("connect", () => {
   console.log("Redis connected");
