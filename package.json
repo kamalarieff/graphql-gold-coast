@@ -10,18 +10,18 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "nodemon": "^1.19.1"
+  },
+  "dependencies": {
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.5.0",
     "@babel/node": "^7.5.0",
     "@babel/plugin-transform-runtime": "^7.5.0",
     "@babel/preset-env": "^7.5.2",
-    "babel-runtime": "^6.26.0",
-    "nodemon": "^1.19.1"
-  },
-  "dependencies": {
     "@babel/runtime": "^7.5.4",
     "apollo-server": "^2.6.7",
     "apollo-server-express": "^2.6.7",
+    "babel-runtime": "^6.26.0",
     "dotenv": "^8.0.0",
     "express": "^4.17.1",
     "graphql": "^14.4.2",
