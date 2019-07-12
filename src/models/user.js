@@ -2,9 +2,10 @@ const user = (sequelize, DataTypes) => {
   const User = sequelize.define(
     "user",
     {
-      name: {
+      username: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true
       },
       purchaseFlightTicket: {
         type: DataTypes.BOOLEAN,

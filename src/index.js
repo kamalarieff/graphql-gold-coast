@@ -9,12 +9,12 @@ const app = express();
 const schema = gql`
   type Query {
     users: [User!]
-    user(name: String!): User
+    user(username: String!): User
   }
 
   type User {
     id: ID!
-    name: String!
+    username: String!
     purchaseFlightTicket: Boolean
   }
 
@@ -27,7 +27,7 @@ const schema = gql`
   }
 
   type Mutation {
-    createUser(name: String!): User
+    createUser(username: String!): User
     setFlightTicketPurchaseStatus(id: ID!, action: Boolean!): User
     addExpense(
       item: String!
@@ -45,10 +45,9 @@ const resolvers = {
     }
   },
   Mutation: {
-    createUser: async (parent, { name }, { models }) => {
+    createUser: async (parent, { username }, { models }) => {
       const user = await models.User.create({
-        name,
-        purchaseFlightTicket: false
+        username
       });
       return user;
     },
@@ -89,7 +88,7 @@ const resolvers = {
 const server = new ApolloServer({
   typeDefs: schema,
   resolvers,
-  context: async () => {
+  context: async ({ req }) => {
     return { models };
   }
 });
