@@ -6,7 +6,7 @@ const user = (sequelize, DataTypes) => {
     },
     purchaseFlightTicket: {
       type: DataTypes.BOOLEAN,
-      default: false,
+      defaultValue: false,
       field: "purchase_flight_ticket"
     }
   });

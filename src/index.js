@@ -5,6 +5,7 @@ import models, { sequelize } from "./models";
 
 const app = express();
 
+// TODO: sharedWith array return. it shouldn't return ID but users instead
 const schema = gql`
   type Query {
     users: [User!]
@@ -17,9 +18,23 @@ const schema = gql`
     purchaseFlightTicket: Boolean
   }
 
+  type Expense {
+    id: ID!
+    item: String
+    value: Float
+    sharedWith: [Int]
+    currency: String
+  }
+
   type Mutation {
     createUser(name: String!): User
     setFlightTicketPurchaseStatus(id: ID!, action: Boolean!): User
+    addExpense(
+      item: String!
+      value: Float!
+      sharedWith: [Int]
+      currency: String
+    ): Expense
   }
 `;
 
@@ -53,6 +68,19 @@ const resolvers = {
       );
       const [_, [updatedValues]] = user;
       return updatedValues;
+    },
+    addExpense: async (
+      parent,
+      { item, value, sharedWith, currency },
+      { models }
+    ) => {
+      const expense = await models.Expense.create({
+        item,
+        value,
+        sharedWith,
+        currency
+      });
+      return expense;
     }
   }
 };
