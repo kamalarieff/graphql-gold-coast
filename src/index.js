@@ -2,6 +2,17 @@ import express from "express";
 import { ApolloServer, gql } from "apollo-server-express";
 import http from "http";
 import models, { sequelize } from "./models";
+import jwt from "jsonwebtoken";
+import { ForbiddenError, UserInputError } from "apollo-server";
+import { skip, combineResolvers } from "graphql-resolvers";
+
+export const isAuthenticated = (parent, args, { me }) =>
+  me ? skip : new ForbiddenError("Not authenticated as user.");
+
+const createToken = async user => {
+  const { id, username } = user;
+  return await jwt.sign({ id, username }, "secret");
+};
 
 const app = express();
 
@@ -26,15 +37,20 @@ const schema = gql`
     currency: String
   }
 
+  type Token {
+    token: String!
+  }
+
   type Mutation {
     createUser(username: String!): User
-    setFlightTicketPurchaseStatus(id: ID!, action: Boolean!): User
+    setFlightTicketPurchaseStatus(action: Boolean!): User
     addExpense(
       item: String!
       value: Float!
       sharedWith: [Int]
       currency: String
     ): Expense
+    signIn(username: String!): Token!
   }
 `;
 
@@ -53,14 +69,14 @@ const resolvers = {
     },
     setFlightTicketPurchaseStatus: async (
       parent,
-      { id, action },
-      { models }
+      { action },
+      { models, me }
     ) => {
       const user = await models.User.update(
         { purchaseFlightTicket: action },
         {
           where: {
-            id
+            id: me.id
           },
           returning: true
         }
@@ -68,19 +84,43 @@ const resolvers = {
       const [_, [updatedValues]] = user;
       return updatedValues;
     },
-    addExpense: async (
-      parent,
-      { item, value, sharedWith, currency },
-      { models }
-    ) => {
-      const expense = await models.Expense.create({
-        item,
-        value,
-        sharedWith,
-        currency,
-        userId: 1
+    addExpense: combineResolvers(
+      isAuthenticated,
+      async (parent, { item, value, sharedWith, currency }, { models, me }) => {
+        const expense = await models.Expense.create({
+          item,
+          value,
+          sharedWith,
+          currency,
+          userId: me.id
+        });
+        return expense;
+      }
+    ),
+    signIn: async (parent, { username }, { models }) => {
+      const user = await models.User.findOne({
+        where: {
+          username
+        }
       });
-      return expense;
+
+      if (!user) {
+        throw new UserInputError("No user found with this login credentials.");
+      }
+
+      return { token: createToken(user) };
+    }
+  }
+};
+
+const getMe = async req => {
+  const token = req.headers["x-token"];
+
+  if (token) {
+    try {
+      return await jwt.verify(token, "secret");
+    } catch (e) {
+      throw new AuthenticationError("Your session expired. Sign in again.");
     }
   }
 };
@@ -89,7 +129,8 @@ const server = new ApolloServer({
   typeDefs: schema,
   resolvers,
   context: async ({ req }) => {
-    return { models };
+    const me = await getMe(req);
+    return { models, me };
   }
 });
 
