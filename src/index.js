@@ -1,12 +1,7 @@
 import express from "express";
 import { ApolloServer, gql } from "apollo-server-express";
-import redis from "ioredis";
-
-const client = new redis(process.env.REDIS_URL);
-
-client.on("connect", () => {
-  console.log("Redis connected");
-});
+import http from "http";
+import models, { sequelize } from "./models";
 
 const app = express();
 
@@ -16,77 +11,68 @@ const schema = gql`
     user(name: String!): User
   }
 
-  type Mutation {
-    createUser(name: String!): User!
-    setPurchaseFlightTicket(name: String!): User!
+  type User {
+    id: ID!
+    name: String!
+    purchaseFlightTicket: Boolean
   }
 
-  type User {
-    name: String!
-    boughtFlightTicket: Boolean!
+  type Mutation {
+    createUser(name: String!): User
+    setFlightTicketPurchaseStatus(id: ID!, action: Boolean!): User
   }
 `;
 
-const convertToBoolean = value => {
-  if (value == "false") return false;
-  else if (value == "true") return true;
-  return value;
-};
-
 const resolvers = {
   Query: {
-    users: async () => {
-      let finalRes = [];
-      const keys = await client.keys("*");
-      for (let value of keys) {
-        let res = await client.hgetall(value);
-        let temp = {};
-        for (let [key, value] of Object.entries(res)) {
-          value = convertToBoolean(value);
-          temp = { ...temp, [key]: value };
-        }
-        finalRes.push(temp);
-      }
-      return finalRes;
-    },
-    user: async (parent, { username }) => {
-      const res = await client.hgetall(username);
-      let temp = {};
-      for (let [key, value] of Object.entries(res)) {
-        value = convertToBoolean(value);
-        temp = { ...temp, [key]: value };
-      }
-      return temp;
+    users: async (parent, args, { models }) => {
+      return await models.User.findAll();
     }
   },
   Mutation: {
-    createUser: (parent, { name }) => {
-      client.hset(name, "name", name);
-      client.hset(name, "boughtFlightTicket", false);
-      return {
+    createUser: async (parent, { name }, { models }) => {
+      const user = await models.User.create({
         name,
-        boughtFlightTicket: false
-      };
+        purchaseFlightTicket: false
+      });
+      return user;
     },
-    setPurchaseFlightTicket: (parent, { name }) => {
-      client.hset(name, "boughtFlightTicket", true);
-      return {
-        name,
-        boughtFlightTicket: true
-      };
+    setFlightTicketPurchaseStatus: async (
+      parent,
+      { id, action },
+      { models }
+    ) => {
+      const user = await models.User.update(
+        { purchaseFlightTicket: action },
+        {
+          where: {
+            id
+          },
+          returning: true
+        }
+      );
+      const [_, [updatedValues]] = user;
+      return updatedValues;
     }
   }
 };
 
 const server = new ApolloServer({
   typeDefs: schema,
-  resolvers
+  resolvers,
+  context: async () => {
+    return { models };
+  }
 });
 
 server.applyMiddleware({ app, path: "/graphql" });
 
+const httpServer = http.createServer(app);
+
 const port = process.env.PORT || 8000;
 
-app.listen({ port }, () => {
-  console.log("Apollo Server on http://localhost:8000/graphql");
+sequelize.sync().then(async () => {
+  httpServer.listen({ port }, () => {
+    console.log("Apollo Server on http://localhost:8000/graphql");
+  });
 });

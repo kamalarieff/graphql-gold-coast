@@ -25,7 +25,8 @@
     "dotenv": "^8.0.0",
     "express": "^4.17.1",
     "graphql": "^14.4.2",
-    "ioredis": "^4.11.1"
+    "pg": "^7.11.0",
+    "sequelize": "^5.9.4"
   },
   "keywords": [],
   "author": "",
