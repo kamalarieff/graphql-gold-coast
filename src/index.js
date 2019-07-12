@@ -126,6 +126,8 @@ const getMe = async req => {
 };
 
 const server = new ApolloServer({
+  introspection: true,
+  playground: true,
   typeDefs: schema,
   resolvers,
   context: async ({ req }) => {
@@ -142,6 +144,6 @@ const port = process.env.PORT || 8000;
 
 sequelize.sync().then(async () => {
   httpServer.listen({ port }, () => {
-    console.log("Apollo Server on http://localhost:8000/graphql");
+    console.log(`Apollo Server on http://localhost:${port}/graphql`);
   });
 });
