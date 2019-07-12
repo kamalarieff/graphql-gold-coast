@@ -78,7 +78,8 @@ const resolvers = {
         item,
         value,
         sharedWith,
-        currency
+        currency,
+        userId: 1
       });
       return expense;
     }
