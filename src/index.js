@@ -5,6 +5,7 @@ import models, { sequelize } from "./models";
 import jwt from "jsonwebtoken";
 import { ForbiddenError, UserInputError } from "apollo-server";
 import { skip, combineResolvers } from "graphql-resolvers";
+import { GraphQLDate, GraphQLTime, GraphQLDateTime } from "graphql-iso-date";
 
 export const isAuthenticated = (parent, args, { me }) =>
   me ? skip : new ForbiddenError("Not authenticated as user.");
@@ -18,9 +19,14 @@ const app = express();
 
 // TODO: sharedWith array return. it shouldn't return ID but users instead
 const schema = gql`
+  scalar Date
+  scalar Time
+  scalar DateTime
+
   type Query {
     users: [User!]
     user(username: String!): User
+    expenses: [Expense!]
   }
 
   type User {
@@ -35,6 +41,7 @@ const schema = gql`
     value: Float
     sharedWith: [Int]
     currency: String
+    createdAt: DateTime
   }
 
   type Token {
@@ -58,6 +65,9 @@ const resolvers = {
   Query: {
     users: async (parent, args, { models }) => {
       return await models.User.findAll();
+    },
+    expenses: async (parent, args, { models }) => {
+      return await models.Expense.findAll();
     }
   },
   Mutation: {
@@ -110,7 +120,10 @@ const resolvers = {
 
       return { token: createToken(user) };
     }
-  }
+  },
+  Date: GraphQLDate,
+  Time: GraphQLTime,
+  DateTime: GraphQLDateTime
 };
 
 const getMe = async req => {
