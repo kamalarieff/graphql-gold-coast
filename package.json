@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --exec babel-node src/index.js",
     "build": "babel src -d dist",
-    "prod": "npm run build && node dist/index.js",
+    "prod": "ENV=production npm run build && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
