@@ -42,6 +42,7 @@ const schema = gql`
     sharedWith: [Int]
     currency: String
     createdAt: DateTime
+    user: User
   }
 
   type Token {
@@ -67,7 +68,14 @@ const resolvers = {
       return await models.User.findAll();
     },
     expenses: async (parent, args, { models }) => {
-      return await models.Expense.findAll();
+      return await models.Expense.findAll({
+        include: [
+          {
+            model: models.User,
+            required: true
+          }
+        ]
+      });
     }
   },
   Mutation: {
@@ -145,6 +153,7 @@ const server = new ApolloServer({
   resolvers,
   context: async ({ req }) => {
     const me = await getMe(req);
+
     return { models, me };
   }
 });
