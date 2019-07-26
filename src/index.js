@@ -33,6 +33,7 @@ const schema = gql`
     id: ID!
     username: String!
     purchaseFlightTicket: Boolean
+    token: String
   }
 
   type Expense {
@@ -58,7 +59,7 @@ const schema = gql`
       sharedWith: [Int]
       currency: String
     ): Expense
-    signIn(username: String!): Token!
+    signIn(username: String!): User
   }
 `;
 
@@ -76,6 +77,11 @@ const resolvers = {
           }
         ]
       });
+    }
+  },
+  User: {
+    token: user => {
+      return createToken(user);
     }
   },
   Mutation: {
@@ -126,7 +132,7 @@ const resolvers = {
         throw new UserInputError("No user found with this login credentials.");
       }
 
-      return { token: createToken(user) };
+      return user;
     }
   },
   Date: GraphQLDate,
