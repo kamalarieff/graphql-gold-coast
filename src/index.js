@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import { ForbiddenError, UserInputError } from "apollo-server";
 import { skip, combineResolvers } from "graphql-resolvers";
 import { GraphQLDate, GraphQLTime, GraphQLDateTime } from "graphql-iso-date";
+import Sequelize from "sequelize";
+const Op = Sequelize.Op;
 
 export const isAuthenticated = (parent, args, { me }) =>
   me ? skip : new ForbiddenError("Not authenticated as user.");
@@ -40,7 +42,7 @@ const schema = gql`
     id: ID!
     item: String
     value: Float
-    sharedWith: [Int]
+    sharedWith: [User]
     currency: String
     createdAt: DateTime
     user: User
@@ -82,6 +84,21 @@ const resolvers = {
   User: {
     token: user => {
       return createToken(user);
+    }
+  },
+  Expense: {
+    sharedWith: async (expense, _, { models }) => {
+      try {
+        return await models.User.findAll({
+          where: {
+            id: {
+              [Op.in]: expense.sharedWith
+            }
+          }
+        });
+      } catch (e) {
+        return [];
+      }
     }
   },
   Mutation: {
