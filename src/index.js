@@ -61,6 +61,13 @@ const schema = gql`
       sharedWith: [Int]
       currency: String
     ): Expense
+    updateExpense(
+      id: ID!
+      item: String!
+      value: Float!
+      sharedWith: [Int]
+      currency: String
+    ): Expense
     signIn(username: String!): User
   }
 `;
@@ -136,6 +143,31 @@ const resolvers = {
           userId: me.id
         });
         return expense;
+      }
+    ),
+    updateExpense: combineResolvers(
+      isAuthenticated,
+      async (parent, { id, item, value, sharedWith, currency }, { models }) => {
+        try {
+          const [_, expense] = await models.Expense.update(
+            {
+              item,
+              value,
+              sharedWith,
+              currency
+            },
+            {
+              where: {
+                id: id
+              },
+              returning: true
+            }
+          );
+          // there will only be one expense because of the where predicate
+          return expense[0];
+        } catch (e) {
+          console.log("e", e);
+        }
       }
     ),
     signIn: async (parent, { username }, { models }) => {
