@@ -3,7 +3,7 @@ import { ApolloServer, gql } from "apollo-server-express";
 import http from "http";
 import models, { sequelize } from "./models";
 import jwt from "jsonwebtoken";
-import { ForbiddenError, UserInputError } from "apollo-server";
+import { ForbiddenError, UserInputError, ApolloError } from "apollo-server";
 import { skip, combineResolvers } from "graphql-resolvers";
 import { GraphQLDate, GraphQLTime, GraphQLDateTime } from "graphql-iso-date";
 import Sequelize from "sequelize";
@@ -68,6 +68,7 @@ const schema = gql`
       sharedWith: [Int]
       currency: String
     ): Expense
+    deleteExpense(id: ID!): Boolean
     signIn(username: String!): User
   }
 `;
@@ -168,6 +169,20 @@ const resolvers = {
         } catch (e) {
           console.log("e", e);
         }
+      }
+    ),
+    deleteExpense: combineResolvers(
+      isAuthenticated,
+      async (parent, { id }, { models }) => {
+        const res = await models.Expense.destroy({
+          where: {
+            id: id
+          }
+        });
+        console.log("res", res);
+        if (res === 0) throw new ApolloError("No expense found.", 200);
+        // there will only be one expense because of the where predicate
+        return true;
       }
     ),
     signIn: async (parent, { username }, { models }) => {
