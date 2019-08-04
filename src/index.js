@@ -45,6 +45,7 @@ const schema = gql`
     sharedWith: [User]
     currency: String
     createdAt: DateTime
+    updatedAt: DateTime
     user: User
   }
 
