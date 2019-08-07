@@ -6,7 +6,10 @@ import jwt from "jsonwebtoken";
 import { ForbiddenError, UserInputError, ApolloError } from "apollo-server";
 import { skip, combineResolvers } from "graphql-resolvers";
 import { GraphQLDate, GraphQLTime, GraphQLDateTime } from "graphql-iso-date";
+import GraphQLJSON from "graphql-type-json";
 import Sequelize from "sequelize";
+import * as R from "ramda";
+
 const Op = Sequelize.Op;
 
 export const isAuthenticated = (parent, args, { me }) =>
@@ -24,11 +27,13 @@ const schema = gql`
   scalar Date
   scalar Time
   scalar DateTime
+  scalar JSON
 
   type Query {
     users: [User!]
     user(username: String!): User
     expenses: [Expense!]
+    todos: [Todo!]
   }
 
   type User {
@@ -53,6 +58,18 @@ const schema = gql`
     token: String!
   }
 
+  type Todo {
+    id: ID!
+    item: String!
+    additional_details: JSON
+  }
+
+  type UserTodo {
+    id: ID!
+    userId: Int
+    todoId: Int
+  }
+
   type Mutation {
     createUser(username: String!): User
     setFlightTicketPurchaseStatus(action: Boolean!): User
@@ -71,6 +88,8 @@ const schema = gql`
     ): Expense
     deleteExpense(id: ID!): Boolean
     signIn(username: String!): User
+    addTodo(item: String!, additional_details: JSON): Todo
+    assignTodo(todoId: Int!, userId: [Int!]): [UserTodo]
   }
 `;
 
@@ -88,6 +107,9 @@ const resolvers = {
           }
         ]
       });
+    },
+    todos: async (parent, args, { models }) => {
+      return await models.Todo.findAll();
     }
   },
   User: {
@@ -198,11 +220,40 @@ const resolvers = {
       }
 
       return user;
+    },
+    addTodo: async (parent, { item, additional_details }, { me, models }) => {
+      const todo = await models.Todo.create({
+        item,
+        additional_details
+      });
+
+      return todo;
+
+      const { id } = todo;
+      // console.log("TCL: todo", todo);
+      console.log("TCL: id", id);
+      await models.UserTodo.create({
+        status: "In Progress",
+        userId: me.id,
+        todoId: id
+      });
+
+      return todo;
+    },
+    assignTodo: async (parent, { todoId, userId }, { models }) => {
+      const temp = R.map(user => ({
+        status: "In Progress",
+        userId: user,
+        todoId
+      }))(userId);
+
+      return await models.UserTodo.bulkCreate(temp, { returning: true });
     }
   },
   Date: GraphQLDate,
   Time: GraphQLTime,
-  DateTime: GraphQLDateTime
+  DateTime: GraphQLDateTime,
+  JSON: GraphQLJSON
 };
 
 const getMe = async req => {

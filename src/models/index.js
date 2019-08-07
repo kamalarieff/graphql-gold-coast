@@ -29,7 +29,9 @@ sequelize
 
 const models = {
   User: sequelize.import("./user"),
-  Expense: sequelize.import("./expense")
+  Expense: sequelize.import("./expense"),
+  Todo: sequelize.import("./todo"),
+  UserTodo: sequelize.import("./userTodo")
 };
 
 Object.keys(models).forEach(key => {
