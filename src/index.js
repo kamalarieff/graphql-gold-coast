@@ -34,6 +34,7 @@ const schema = gql`
     user(username: String!): User
     expenses: [Expense!]
     todos: [Todo!]
+    userTodos: [UserTodo!]
   }
 
   type User {
@@ -61,7 +62,7 @@ const schema = gql`
   type Todo {
     id: ID!
     item: String!
-    additional_details: JSON
+    additionalDetails: JSON
   }
 
   type UserTodo {
@@ -110,6 +111,9 @@ const resolvers = {
     },
     todos: async (parent, args, { models }) => {
       return await models.Todo.findAll();
+    },
+    userTodos: async (parent, args, { models }) => {
+      return await models.UserTodo.findAll();
     }
   },
   User: {
