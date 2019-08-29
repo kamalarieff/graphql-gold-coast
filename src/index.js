@@ -35,6 +35,7 @@ const schema = gql`
     expenses: [Expense!]
     todos: [Todo!]
     userTodos: [UserTodo!]
+    myTodos: [UserTodo]
   }
 
   type User {
@@ -67,8 +68,8 @@ const schema = gql`
 
   type UserTodo {
     id: ID!
-    userId: Int
-    todoId: Int
+    status: String
+    todo: Todo
   }
 
   type Mutation {
@@ -114,6 +115,23 @@ const resolvers = {
     },
     userTodos: async (parent, args, { models }) => {
       return await models.UserTodo.findAll();
+    },
+    myTodos: async (parent, args, { models, me }) => {
+      try {
+        return await models.UserTodo.findAll({
+          include: [
+            {
+              model: models.Todo,
+              required: true
+            }
+          ],
+          where: {
+            userId: me.id
+          }
+        });
+      } catch (e) {
+        console.log("e", e);
+      }
     }
   },
   User: {
