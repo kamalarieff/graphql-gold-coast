@@ -70,6 +70,7 @@ const schema = gql`
     id: ID!
     status: String
     todo: Todo
+    user: User
   }
 
   type Mutation {
@@ -114,7 +115,18 @@ const resolvers = {
       return await models.Todo.findAll();
     },
     userTodos: async (parent, args, { models }) => {
-      return await models.UserTodo.findAll();
+      return await models.UserTodo.findAll({
+        include: [
+          {
+            model: models.Todo,
+            required: true
+          },
+          {
+            model: models.User,
+            required: true
+          }
+        ]
+      });
     },
     myTodos: async (parent, args, { models, me }) => {
       try {
