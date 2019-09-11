@@ -93,6 +93,7 @@ const schema = gql`
     signIn(username: String!): User
     addTodo(item: String!, additional_details: JSON): Todo
     assignTodo(todoId: Int!, userId: [Int!]): [UserTodo]
+    updateTodoStatus(status: String!, todoId: Int!): UserTodo
   }
 `;
 
@@ -282,7 +283,57 @@ const resolvers = {
       }))(userId);
 
       return await models.UserTodo.bulkCreate(temp, { returning: true });
-    }
+    },
+    updateTodoStatus: combineResolvers(
+      isAuthenticated,
+      async (parent, { status, todoId }, { models, me }) => {
+        const acceptedStatuses = ["In Progress", "Done"];
+        const checkInputStatus = R.includes(R.__, acceptedStatuses);
+        const isInputStatusAccepted = checkInputStatus(status);
+
+        if (!isInputStatusAccepted)
+          throw new UserInputError("Status not allowed");
+
+        try {
+          await models.UserTodo.findOne({
+            where: {
+              todoId,
+              userId: me.id
+            },
+            rejectOnEmpty: true
+          });
+
+          await models.UserTodo.update(
+            {
+              status
+            },
+            {
+              where: {
+                todoId,
+                userId: me.id
+              }
+            }
+          );
+          const [result] = await models.UserTodo.findAll({
+            include: [
+              {
+                model: models.Todo,
+                required: true
+              }
+            ],
+            where: {
+              userId: me.id
+            }
+          });
+          return result;
+        } catch (e) {
+          if (e.name === "SequelizeEmptyResultError")
+            throw new UserInputError("No todo found");
+
+          return e;
+        }
+      }
+    )
   },
   Date: GraphQLDate,
   Time: GraphQLTime,
