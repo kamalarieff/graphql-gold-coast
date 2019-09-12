@@ -93,7 +93,12 @@ const schema = gql`
     signIn(username: String!): User
     addTodo(item: String!, additional_details: JSON): Todo
     assignTodo(todoId: Int!, userId: [Int!]): [UserTodo]
-    updateTodoStatus(status: String!, todoId: Int!): UserTodo
+    updateTodoStatus(status: TodoStatusEnum!, todoId: Int!): UserTodo
+  }
+
+  enum TodoStatusEnum {
+    IN_PROGRESS
+    DONE
   }
 `;
 
@@ -287,13 +292,6 @@ const resolvers = {
     updateTodoStatus: combineResolvers(
       isAuthenticated,
       async (parent, { status, todoId }, { models, me }) => {
-        const acceptedStatuses = ["In Progress", "Done"];
-        const checkInputStatus = R.includes(R.__, acceptedStatuses);
-        const isInputStatusAccepted = checkInputStatus(status);
-
-        if (!isInputStatusAccepted)
-          throw new UserInputError("Status not allowed");
-
         try {
           await models.UserTodo.findOne({
             where: {
